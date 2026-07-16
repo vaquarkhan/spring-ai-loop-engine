@@ -1,30 +1,38 @@
 # Spring AI Loop Engine
 
-Enterprise-grade **Loop Engineering** for [Spring AI](https://docs.spring.io/spring-ai/reference/): a zero-configuration starter that abstracts tactical prompt engineering into autonomous, stateful, and secure agent loops.
+## Introduction
 
-> Prompting does not disappear — it is abstracted. Developers become **loop architects** who design goals, tool circuits, and safety guardrails. The loop handles self-correction until the goal is met.
+The AI industry is rapidly shifting from manual prompt engineering to **Loop Engineering**. Instead of developers manually guiding an LLM turn-by-turn, modern AI architectures rely on autonomous loops: a developer defines a high-level goal, equips the agent with tools, and the system autonomously executes, self-corrects, and iterates until the objective is achieved.
 
-## Why this exists
+The **Spring AI Loop Engine** is a zero-configuration Spring Boot framework designed to bring this paradigm to the enterprise Java ecosystem. It elevates the standard Spring AI `ChatClient` from a simple request-response mechanism into a highly observable, stateful, and secure autonomous loop.
 
-Default recursive `ToolCallingAdvisor` chains lack:
+Prompting does not disappear — it is abstracted. Developers become **loop architects** who design goals, tool circuits, and safety guardrails. The loop handles tactical self-correction until the goal is met.
 
-- Per-turn state and runaway billing protection  
-- Protocol interoperability (AG-UI / A2A / MCP)  
-- Enterprise integrity (output gates + decision attestation)  
-- GenAI-native observability with DLP  
+## Core Capabilities
 
-`spring-ai-loop-engine` addresses those gaps while staying compatible with Spring AI’s `ChatClient`, `ToolCallback`, and auto-configuration model.
+### The AgentLoopManager
 
-## Naming (Spring AI Community)
+Moving beyond basic recursive interceptors, this framework decorates Spring AI's native tool execution with an advanced loop manager. It tracks per-turn state (`AgentTurn`) and enforces strict interaction budgets using **soft** and **hard** round bounds, eliminating the risk of infinite loops and runaway API billing. Tool-argument fingerprinting also blocks the model from retrying the exact same failed action.
 
-| Item | Value |
-|------|-------|
-| Repository / artifact | `spring-ai-loop-engine` |
-| Starter | `spring-ai-starter-loop-engine` |
-| GroupId (pre-incubation) | `io.github.vaquarkhan` |
-| License | Apache 2.0 |
+### AG-UI Protocol Integration (Real-Time Frontend Streaming)
 
-Community proposal: [spring-ai-community/community#28](https://github.com/spring-ai-community/community/issues/28)
+Long-running agent loops cannot rely on synchronous HTTP responses. This engine includes a reactive WebFlux layer that emits standardized AG-UI events (such as `TOOL_CALL_START` and `STATE_DELTA`) over Server-Sent Events, enabling frontends to render real-time progress. It also features built-in Human-in-the-Loop (HITL) suspension, pausing loop execution safely when human approval is required.
+
+### Agent-to-Agent (A2A) Sub-Agent Spawning
+
+Complex tasks degrade the performance of a single LLM. Integrated with `spring-ai-a2a` patterns, this framework allows your main orchestrator loop to autonomously discover capabilities via standard agent cards (`/.well-known/agent-card.json`) and spawn specialized, temporary sub-agents with strict round/token budgets.
+
+### Zero-Trust Enterprise Governance
+
+Built for production environments, the engine implements the **Vaquar Pattern for Data Mesh (PVDM)** Decision Attestation. Every tool execution is validated by an **MCP Bastion** that enforces Role-Based Access Control (RBAC), and generates a cryptographically signed audit trail of the agent's decision provenance. Output validation gates (density, dependency, design rules) run before the loop terminates.
+
+### Observability & DLP
+
+OpenTelemetry GenAI spans track input/output tokens, finish reasons, and agent spawn latency for Datadog, Grafana, and other APM tools. A `PiiMaskingSpanExporter` redacts SSNs, emails, and API keys before traces leave the network.
+
+### AI-Assisted Development Ready (Cursor IDE)
+
+Natively exposes your backend Java tools as an MCP server optimized for Cursor IDE. The starter includes utilities to auto-generate `mcp.json` configurations and inject project rules under `.cursor/rules/`, so Composer can work safely against your loop tools and governance gates.
 
 ## Quick start
 
@@ -70,28 +78,6 @@ Client (MCP Bastion)  AG-UI · Integrity/PVDM · OTel
    └── A2A SubAgentSpawner + /.well-known/agent-card.json
 ```
 
-### Core: `AgentLoopManager`
-
-- Decorates Spring AI tool execution (does not replace `ChatClient`)  
-- `AgentTurn` tracks rounds, tool history, argument fingerprints  
-- **Soft-max-rounds** → inject wrap-up prompt, stop tools  
-- **Hard-max-rounds** → `HardMaxRoundsExceededException` (stop billing)  
-
-### Protocol Triad
-
-| Protocol | Module | Capability |
-|----------|--------|------------|
-| **AG-UI** | `spring-ai-loop-engine-agui` | WebFlux SSE (`RunStartedEvent`, `TOOL_CALL_START`, `STATE_DELTA`), HITL approvals |
-| **A2A** | `spring-ai-loop-engine-a2a` | Sub-agent spawning with budgets, `/.well-known/agent-card.json` |
-| **MCP** | `spring-ai-loop-engine-mcp` | Zero-trust Bastion (RBAC), Cursor `mcp.json` generator |
-
-### Integrity & Observability
-
-- Density / dependency / YAML design **validation gates**  
-- **PVDM-A** HMAC decision attestations per tool call and loop completion  
-- OpenTelemetry GenAI spans (`gen_ai.usage.*`, finish reasons, spawn latency)  
-- `PiiMaskingSpanExporter` for SSN / email / API key redaction  
-
 ## Modules
 
 | Module | Description |
@@ -99,20 +85,26 @@ Client (MCP Bastion)  AG-UI · Integrity/PVDM · OTel
 | `spring-ai-loop-engine-core` | `AgentLoopManager`, `AgentTurn`, bounds, fingerprinting |
 | `spring-ai-loop-engine-agui` | AG-UI SSE + HITL |
 | `spring-ai-loop-engine-a2a` | Sub-agents + AgentCard |
-| `spring-ai-loop-engine-mcp` | Bastion + Cursor config |
-| `spring-ai-loop-engine-integrity` | Gates + PVDM |
-| `spring-ai-loop-engine-observability` | OTel + PII masking |
+| `spring-ai-loop-engine-mcp` | Bastion + Cursor `mcp.json` generator |
+| `spring-ai-loop-engine-integrity` | Validation gates + PVDM attestation |
+| `spring-ai-loop-engine-observability` | OTel GenAI spans + PII masking |
 | `spring-ai-starter-loop-engine` | One dependency for everything |
 | `spring-ai-loop-engine-bom` | BOM |
+
+## Naming (Spring AI Community)
+
+| Item | Value |
+|------|-------|
+| Repository / artifact | `spring-ai-loop-engine` |
+| Starter | `spring-ai-starter-loop-engine` |
+| GroupId (pre-incubation) | `io.github.vaquarkhan` |
+| License | Apache 2.0 |
+
+Community proposal: [spring-ai-community/community#28](https://github.com/spring-ai-community/community/issues/28)
 
 ## Cursor IDE
 
 See [docs/cursor-setup.md](docs/cursor-setup.md).
-
-Cursor project files live under `.cursor/`:
-
-- `.cursor/rules/loop-engine.mdc` — always-on project rules
-- `.cursor/mcp.json` — MCP snippet for Composer
 
 ```bash
 # Unix
@@ -121,6 +113,9 @@ Cursor project files live under `.cursor/`:
 # Windows PowerShell
 ./scripts/install.ps1 -Tool cursor
 ```
+
+- `.cursor/rules/loop-engine.mdc` — always-on project rules  
+- `.cursor/mcp.json` — MCP snippet for Composer  
 
 ## Example
 
@@ -137,7 +132,7 @@ curl -X POST http://localhost:8080/api/loop/run -H "Content-Type: application/js
 | Spring Boot | 3.5.x (profile `spring-ai-2` reserved for Boot 4 / Spring AI 2.0) |
 | Spring AI | 1.1.x |
 
-Reference implementation patterns: [ai-agent-java-sdk](https://github.com/vaquarkhan/ai-agent-java-sdk) (Strands-style Java port).
+Reference patterns: [ai-agent-java-sdk](https://github.com/vaquarkhan/ai-agent-java-sdk)
 
 ## License
 
