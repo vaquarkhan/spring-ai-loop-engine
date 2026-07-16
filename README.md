@@ -107,18 +107,20 @@ Utilities generate `mcp.json` for MCP-capable IDEs. Your app still exposes the M
 
 ## Architecture
 
-```
-User / Frontend (AG-UI SSE)
-        │
-        ▼
- AgentLoopManager  ── soft/hard bounds, fingerprints, AgentTurn
-        │
-   ┌────┼──────────────┐
-   ▼    ▼              ▼
- Chat  Tools        Listeners
-Client (MCP Bastion)  AG-UI · Integrity/PVDM · OTel
-   │
-   └── A2A SubAgentSpawner + /.well-known/agent-card.json
+```mermaid
+flowchart TB
+  UI["User / Frontend<br/>AG-UI SSE"]
+  ALM["AgentLoopManager<br/>soft/hard bounds · fingerprints · AgentTurn"]
+  Chat["ChatClient"]
+  Tools["Tools<br/>MCP Bastion"]
+  Listeners["Listeners<br/>AG-UI · Integrity/PVDM · OTel"]
+  A2A["A2A SubAgentSpawner<br/>/.well-known/agent-card.json"]
+
+  UI --> ALM
+  ALM --> Chat
+  ALM --> Tools
+  ALM --> Listeners
+  ALM --> A2A
 ```
 
 **Mental model:** you design goals + tool circuits + budgets; listeners handle streaming, attestation, and telemetry.

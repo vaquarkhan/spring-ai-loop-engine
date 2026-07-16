@@ -47,18 +47,20 @@ You are a **loop architect**, not a turn-by-turn prompt engineer.
 
 Prefer `AgentLoopManager` + `LoopRequest` over custom recursive `ToolCallingAdvisor` chains. The engine **wraps** Spring AI (`ChatClient`, `ToolCallback`); it does not fork them.
 
-```
-User / Frontend (AG-UI SSE)
-        │
-        ▼
- AgentLoopManager  ── soft/hard bounds, fingerprints, AgentTurn
-        │
-   ┌────┼──────────────┐
-   ▼    ▼              ▼
- Chat  Tools        Listeners
-Client (MCP Bastion)  AG-UI · Integrity/PVDM · OTel
-   │
-   └── A2A SubAgentSpawner + /.well-known/agent-card.json
+```mermaid
+flowchart TB
+  UI["User / Frontend<br/>AG-UI SSE"]
+  ALM["AgentLoopManager<br/>soft/hard bounds · fingerprints · AgentTurn"]
+  Chat["ChatClient"]
+  Tools["Tools<br/>MCP Bastion"]
+  Listeners["Listeners<br/>AG-UI · Integrity/PVDM · OTel"]
+  A2A["A2A SubAgentSpawner<br/>/.well-known/agent-card.json"]
+
+  UI --> ALM
+  ALM --> Chat
+  ALM --> Tools
+  ALM --> Listeners
+  ALM --> A2A
 ```
 
 ---
@@ -258,6 +260,21 @@ System.out.println(result.toolHistory());
 ```
 
 ### Soft vs hard rounds
+
+```mermaid
+flowchart TD
+  Start([Start turn]) --> Round[nextRound]
+  Round --> Hard{round > hardMax?}
+  Hard -->|yes| Fail[HardMaxRoundsExceededException]
+  Hard -->|no| Soft{round >= softMax<br/>and wrap not injected?}
+  Soft -->|yes| Wrap[Inject soft wrap prompt<br/>suppress further tools]
+  Soft -->|no| Model[Model generate]
+  Wrap --> Model
+  Model --> Tools{Tool calls?}
+  Tools -->|yes and not soft-wrap| Exec[Execute tools<br/>fingerprint duplicates]
+  Exec --> Round
+  Tools -->|no / soft-wrap final| Done([MODEL_COMPLETION<br/>or SOFT_WRAP_UP])
+```
 
 1. Each iteration calls `AgentTurn.nextRound()`.
 2. If `round > hardMax` → `HardMaxRoundsExceededException` (`TerminationReason.HARD_MAX_ROUNDS`).
