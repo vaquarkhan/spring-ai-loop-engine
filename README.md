@@ -142,7 +142,7 @@ Maven multi-module layout. Add the **starter** for everything, or pick modules v
 | [examples/](examples/README.md) | several apps | — | Runnable demos (no API key) |
 | [docs/](docs/README.md) | — | — | Guides, tutorial, offline preview |
 | [scripts/](scripts/README.md) | — | — | Helper scripts |
-| [.github/](.github/README.md) | — | — | CI (`mvn verify`, JDK 21) |
+| [.github/workflows/](.github/workflows/README.md) | — | — | CI (`mvn verify`, JDK 21) |
 
 ### Module highlights
 
