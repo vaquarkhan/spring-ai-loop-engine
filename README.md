@@ -30,9 +30,9 @@ Built for production environments, the engine implements the **Vaquar Pattern fo
 
 OpenTelemetry GenAI spans track input/output tokens, finish reasons, and agent spawn latency for Datadog, Grafana, and other APM tools. A `PiiMaskingSpanExporter` redacts SSNs, emails, and API keys before traces leave the network.
 
-### AI-Assisted Development Ready (Cursor IDE)
+### AI-Assisted Development Ready (MCP IDE Clients)
 
-Natively exposes your backend Java tools as an MCP server optimized for Cursor IDE. The starter includes utilities to auto-generate `mcp.json` configurations and inject project rules under `.cursor/rules/`, so Composer can work safely against your loop tools and governance gates.
+Natively exposes your backend Java tools as an MCP server compatible with any MCP-capable IDE/client. The starter includes utilities to auto-generate `mcp.json` configurations and provide editor rule templates so AI-assisted coding can safely call your loop tools and governance gates.
 
 ## Quick start
 
@@ -78,18 +78,24 @@ Client (MCP Bastion)  AG-UI · Integrity/PVDM · OTel
    └── A2A SubAgentSpawner + /.well-known/agent-card.json
 ```
 
-## Modules
+## Repository layout
 
-| Module | Description |
-|--------|-------------|
-| `spring-ai-loop-engine-core` | `AgentLoopManager`, `AgentTurn`, bounds, fingerprinting |
-| `spring-ai-loop-engine-agui` | AG-UI SSE + HITL |
-| `spring-ai-loop-engine-a2a` | Sub-agents + AgentCard |
-| `spring-ai-loop-engine-mcp` | Bastion + Cursor `mcp.json` generator |
-| `spring-ai-loop-engine-integrity` | Validation gates + PVDM attestation |
-| `spring-ai-loop-engine-observability` | OTel GenAI spans + PII masking |
-| `spring-ai-starter-loop-engine` | One dependency for everything |
-| `spring-ai-loop-engine-bom` | BOM |
+| Folder | Purpose |
+|--------|---------|
+| [spring-ai-loop-engine-core](spring-ai-loop-engine-core/README.md) | Core loop runtime: `AgentLoopManager`, `AgentTurn`, soft/hard bounds, fingerprinting |
+| [spring-ai-loop-engine-agui](spring-ai-loop-engine-agui/README.md) | AG-UI SSE streaming + Human-in-the-Loop (HITL) |
+| [spring-ai-loop-engine-a2a](spring-ai-loop-engine-a2a/README.md) | Sub-agent spawning + AgentCard discovery |
+| [spring-ai-loop-engine-mcp](spring-ai-loop-engine-mcp/README.md) | MCP Bastion (RBAC) + `mcp.json` generator |
+| [spring-ai-loop-engine-integrity](spring-ai-loop-engine-integrity/README.md) | Output validation gates + PVDM attestation |
+| [spring-ai-loop-engine-observability](spring-ai-loop-engine-observability/README.md) | OpenTelemetry GenAI spans + PII masking |
+| [spring-ai-starter-loop-engine](spring-ai-starter-loop-engine/README.md) | Zero-config Spring Boot starter (pulls all modules) |
+| [spring-ai-loop-engine-bom](spring-ai-loop-engine-bom/README.md) | Bill of Materials for version alignment |
+| [examples](examples/README.md) | Runnable sample applications |
+| [docs](docs/README.md) | Guides, proposal notes, setup docs |
+| [scripts](scripts/README.md) | Install / helper scripts |
+| [.github](.github/README.md) | CI workflows |
+
+Each folder has its own `README.md` with package details, key classes, and configuration.
 
 ## Naming (Spring AI Community)
 
@@ -102,20 +108,24 @@ Client (MCP Bastion)  AG-UI · Integrity/PVDM · OTel
 
 Community proposal: [spring-ai-community/community#28](https://github.com/spring-ai-community/community/issues/28)
 
-## Cursor IDE
+## IDE Integration (MCP-capable clients)
 
-See [docs/cursor-setup.md](docs/cursor-setup.md).
+1. Start your Spring Boot app and expose your MCP server endpoint (SSE or STDIO) using your Spring AI MCP wiring (for example via `@McpTool`).
+2. In your IDE/client, configure an `mcp.json` that points at your MCP server.
 
-```bash
-# Unix
-./scripts/install.sh --tool cursor
+Example `mcp.json` snippet:
 
-# Windows PowerShell
-./scripts/install.ps1 -Tool cursor
+```json
+{
+  "mcpServers": {
+    "spring-ai-loop-engine": {
+      "url": "http://localhost:8080/sse"
+    }
+  }
+}
 ```
 
-- `.cursor/rules/loop-engine.mdc` — always-on project rules  
-- `.cursor/mcp.json` — MCP snippet for Composer  
+3. Ensure MCP tool calls are routed through the framework’s MCP Bastion RBAC layer.
 
 ## Example
 

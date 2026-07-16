@@ -8,7 +8,6 @@ import io.github.vaquarkhan.loopengine.core.loop.AgentLoopManager;
 import io.github.vaquarkhan.loopengine.core.loop.LoopRequest;
 import io.github.vaquarkhan.loopengine.core.model.AgentTurn;
 import java.util.Map;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,7 +23,6 @@ import reactor.core.scheduler.Schedulers;
  * Reactive WebFlux SSE controller that streams AG-UI events for long-running loops.
  */
 @RestController
-@ConditionalOnProperty(prefix = "spring.ai.loop.agui", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class AgUiSseController {
 
     private final AgentLoopManager loopManager;
@@ -72,14 +70,14 @@ public class AgUiSseController {
 
     @PostMapping("${spring.ai.loop.agui.approval-path:/api/loop/approvals}/{approvalId}")
     public Mono<Map<String, Object>> approve(
-            @PathVariable String approvalId,
+            @PathVariable("approvalId") String approvalId,
             @RequestBody ApprovalBody body) {
         boolean ok = approvalStore.decide(approvalId, body.approved(), body.modifiedArguments());
         return Mono.just(Map.of("approvalId", approvalId, "accepted", ok));
     }
 
     @GetMapping(path = "${spring.ai.loop.agui.sse-path:/api/loop/ag-ui}/{turnId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ServerSentEvent<AgUiEvent>> subscribe(@PathVariable String turnId) {
+    public Flux<ServerSentEvent<AgUiEvent>> subscribe(@PathVariable("turnId") String turnId) {
         return eventBridge.stream(turnId)
                 .map(event -> ServerSentEvent.builder(event).event(event.type()).build());
     }
