@@ -1,0 +1,47 @@
+---
+description: Spring AI Loop Engine architecture and coding rules for Cursor
+alwaysApply: true
+---
+
+# Spring AI Loop Engine
+
+You are assisting on **spring-ai-loop-engine**, an enterprise Loop Engineering framework for Spring AI.
+
+## Mental model
+
+- Developers are **loop architects**, not turn-by-turn prompt engineers.
+- Prompting is abstracted into the loop: tools run, errors feed back, the model self-corrects until the goal is met.
+- Prefer `AgentLoopManager` + `LoopRequest` over custom recursive `ToolCallingAdvisor` chains.
+
+## Hard requirements when generating code
+
+1. Always configure **soft-max-rounds** and **hard-max-rounds** (`spring.ai.loop.*`).
+2. Track per-turn state with `AgentTurn`; fingerprint tool args to block duplicate failed retries.
+3. For UIs, stream AG-UI events (`RunStartedEvent`, `TOOL_CALL_START`, `STATE_DELTA`) over WebFlux SSE — prefer composing with community AG-UI when available.
+4. For sensitive tools, use HITL suspension (`HitlApprovalStore`) — never auto-approve destructive actions.
+5. Route external tools through **MCP Bastion** RBAC (`McpBastionToolExecutor`).
+6. Validate final outputs with integrity gates; record **PVDM** decision attestations.
+7. Emit OpenTelemetry GenAI attributes; mask PII before export (`PiiMaskingSpanExporter`).
+
+## Package layout
+
+- `io.github.vaquarkhan.loopengine.core` — loop manager
+- `.agui` — Agent-User Interaction protocol
+- `.a2a` — Agent-to-Agent spawning + AgentCard
+- `.mcp` — Bastion + Cursor mcp.json
+- `.integrity` — gates + PVDM
+- `.observability` — OTel
+
+## Style
+
+- Java 21+, Spring Boot 3.5+/4.x ready, Apache 2.0
+- Match existing naming: `spring-ai-loop-engine`, `spring-ai-starter-loop-engine`
+- Prefer auto-configuration + `@ConditionalOn*` over mandatory annotations
+- Keep Spring AI compatibility: wrap `ChatClient` / `ToolCallback`, do not fork them
+
+## Do not
+
+- Invent infinite loops without hard bounds
+- Log raw SSNs, emails, or API keys in spans
+- Bypass Bastion “just for demos” in sample apps that claim production patterns
+- Duplicate incubated community projects (`spring-ai-a2a`, `spring-ai-agentcore`, AG-UI proposals) — compose with them

@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "spring-ai-loop-engine": {
+      "url": "http://localhost:8080/sse"
+    }
+  }
+}

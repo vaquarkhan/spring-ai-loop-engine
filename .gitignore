@@ -1,0 +1,63 @@
+# Build
+target/
+**/target/
+!.mvn/wrapper/maven-wrapper.jar
+.mvn/wrapper/maven-wrapper.properties.bak
+build/
+out/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
+
+# Maven / Gradle
+.mvn/timing.properties
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+.factorypath
+.vscode/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs & temp
+*.log
+*.tmp
+*.temp
+logs/
+
+# Secrets / local overrides
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.jks
+**/application-local.yml
+**/application-local.properties
+**/application-secret.*
+
+# Cursor — keep shared rules/templates; ignore machine-local MCP overrides
+.cursor/mcp.json.local
+.cursor/**/*.local.*
+.cursor/debug.log
