@@ -1,55 +1,68 @@
 # simple-loop-app
 
-Minimal Spring Boot example for Spring AI Loop Engine.
+Showcase Spring Boot demo for Spring AI Loop Engine — **no LLM API key required**.
 
-Uses a **demo** `LoopModelClient` and `ToolExecutor` so you can exercise the loop without an LLM API key. Pulls in `spring-ai-starter-loop-engine` and runs as a reactive WebFlux app.
+Uses a scenario-aware demo `LoopModelClient` plus echo/lookup/broken tools to exercise:
+
+- multi-tool loops
+- soft wrap-up budgets
+- duplicate failed-action fingerprint blocking
+- A2A sub-agent spawn
+- AG-UI SSE + AgentCard + HITL approval endpoint
 
 ## Run
 
 ```bash
-# from repo root
+# from repo root (JDK 21+)
 mvn -pl examples/simple-loop-app -am install -DskipTests
 mvn -pl examples/simple-loop-app spring-boot:run
 ```
 
-Default port: `8080`.
+Open http://localhost:8080/ for the scenario index.
+
+## Scenarios (`POST /api/loop/run`)
+
+| Message contains | Behavior |
+|------------------|----------|
+| *(default)* | One `echo` tool then complete |
+| `invoice` / `multi` | `lookup` → `echo` → final answer with INV-42 |
+| `duplicate` / `retry-same` | Same failing `broken` tool; second call blocked; soft wrap |
+| `wrap` + `?softMaxRounds=1` | Immediate soft wrap-up |
+
+### Examples
+
+```bash
+# Happy path
+curl -X POST http://localhost:8080/api/loop/run -H "Content-Type: application/json" -d "{\"message\":\"hello\"}"
+
+# Multi-tool
+curl -X POST http://localhost:8080/api/loop/run -H "Content-Type: application/json" -d "{\"message\":\"invoice multi tool demo\"}"
+
+# Soft wrap
+curl -X POST "http://localhost:8080/api/loop/run?softMaxRounds=1&hardMaxRounds=3" -H "Content-Type: application/json" -d "{\"message\":\"please wrap\"}"
+
+# A2A worker
+curl -X POST http://localhost:8080/api/loop/run/worker -H "Content-Type: application/json" -d "{\"message\":\"invoice multi\"}"
+
+# AG-UI SSE
+curl -N -X POST http://localhost:8080/api/loop/ag-ui -H "Content-Type: application/json" -d "{\"sessionId\":\"demo\",\"message\":\"invoice multi\"}"
+
+# AgentCard
+curl http://localhost:8080/.well-known/agent-card.json
+```
 
 ## Endpoints
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `POST` | `/api/loop/run` | Synchronous loop run (demo controller) |
+| `GET` | `/` | Scenario index |
+| `GET` | `/api/demo/status` | Run counters |
+| `POST` | `/api/loop/run` | Synchronous loop (optional soft/hard query params) |
+| `POST` | `/api/loop/run/worker` | Spawn budgeted sub-agent |
 | `POST` | `/api/loop/ag-ui` | AG-UI SSE stream |
 | `POST` | `/api/loop/approvals/{id}` | HITL approval callback |
 | `GET` | `/.well-known/agent-card.json` | A2A-style AgentCard |
 
-### Example
-
-```bash
-curl -X POST http://localhost:8080/api/loop/run \
-  -H "Content-Type: application/json" \
-  -d "{\"sessionId\":\"demo\",\"message\":\"validate loop\"}"
-```
-
-Typical response:
-
-```json
-{
-  "content": "Loop complete. Soft wrap=false, rounds so far=2",
-  "terminationReason": "MODEL_COMPLETION",
-  "rounds": 2,
-  "tools": 1
-}
-```
-
-## Configuration
-
-See `src/main/resources/application.properties`:
-
-- `spring.ai.loop.soft-max-rounds=5`
-- `spring.ai.loop.hard-max-rounds=10`
-- `spring.main.web-application-type=reactive`
-
 ## Production note
 
-Replace the demo `LoopModelClient` with `ChatClientLoopModelClient` backed by a real Spring AI `ChatClient.Builder`, and register real `ToolCallback` / MCP tools instead of the echo demo tool.
+Replace `DemoLoopModelClient` with `ChatClientLoopModelClient` and register real `ToolCallback` / MCP tools.
