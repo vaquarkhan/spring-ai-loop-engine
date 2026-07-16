@@ -501,23 +501,24 @@ Each module folder has a short `README.md`.
 
 ## 14. Example application
 
-Path: [`examples/simple-loop-app`](../examples/simple-loop-app).
+Path: [`examples/`](../examples) — several runnable demos (no LLM API key).
 
-**GitHub does not run the demo.** Build and start locally for live results; otherwise use simulation / [demo-preview.html](demo-preview.html).
+**GitHub does not run the demos.** Build and start locally for live results; otherwise use simulation / [demo-preview.html](demo-preview.html) for the manager UI.
 
 ```bash
-# JDK 21+
+# Getting-started UI (port 8080)
 mvn -pl examples/simple-loop-app -am install -DskipTests
 mvn -pl examples/simple-loop-app spring-boot:run
-# open http://localhost:8080/
 ```
 
-| Mode | How |
-|------|-----|
-| Live | App running → real `AgentLoopManager` |
-| Simulation | Server down, or open `docs/demo-preview.html`, or check “Always use simulation” |
+| Example | Port | Use case |
+|---------|------|----------|
+| `simple-loop-app` | 8080 | Manager UI + simulation |
+| `invoice-reconciliation-loop` | 8081 | Finance AP reconciliation |
+| `support-triage-loop` | 8082 | CX triage + A2A specialist |
+| `incident-response-loop` | 8083 | SRE + Bastion RBAC |
 
-Demo endpoints and message scenarios: [examples/simple-loop-app/README.md](../examples/simple-loop-app/README.md).
+Details and curls: [examples/README.md](../examples/README.md).
 
 ---
 

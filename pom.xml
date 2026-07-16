@@ -50,6 +50,9 @@
         <module>spring-ai-loop-engine-observability</module>
         <module>spring-ai-starter-loop-engine</module>
         <module>examples/simple-loop-app</module>
+        <module>examples/invoice-reconciliation-loop</module>
+        <module>examples/support-triage-loop</module>
+        <module>examples/incident-response-loop</module>
     </modules>
 
     <properties>

@@ -2,6 +2,8 @@
 
 Project documentation for Spring AI Loop Engine.
 
+The repository home page ([root README](../README.md)) is the full overview: capabilities, architecture, **all modules**, config summary, examples, and links into these guides.
+
 ## Start here (developers)
 
 | Document | Description |
