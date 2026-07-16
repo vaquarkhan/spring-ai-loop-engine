@@ -8,6 +8,7 @@ import io.github.vaquarkhan.loopengine.core.loop.ModelRound;
 import io.github.vaquarkhan.loopengine.core.model.AgentTurn;
 import io.github.vaquarkhan.loopengine.core.model.LoopResult;
 import io.github.vaquarkhan.loopengine.core.tool.ToolExecutor;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,11 +17,14 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 /**
  * Showcase demo for Spring AI Loop Engine — no LLM API key required.
@@ -121,17 +125,31 @@ public class SimpleLoopApplication {
             this.subAgentSpawner = subAgentSpawner;
         }
 
-        @GetMapping("/")
-        Map<String, Object> index() {
+        @GetMapping(value = "/", produces = MediaType.TEXT_HTML_VALUE)
+        Mono<String> index() {
+            return Mono.fromCallable(() -> {
+                try (var in = SimpleLoopApplication.class.getResourceAsStream("/static/index.html")) {
+                    if (in == null) {
+                        return "<!DOCTYPE html><html><body><h1>Spring AI Loop Engine</h1>"
+                                + "<p>Landing page missing. Use /api/demo/status.</p></body></html>";
+                    }
+                    return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+                }
+            });
+        }
+
+        @GetMapping("/api/demo/index")
+        Map<String, Object> indexJson() {
             Map<String, Object> body = new LinkedHashMap<>();
             body.put("name", "spring-ai-loop-engine demo");
-            body.put("hint", "POST /api/loop/run with message scenarios below");
+            body.put("audience", "Managers and non-technical readers: open / in a browser for the plain-language guide.");
             body.put("scenarios", List.of(
                     "default — one echo tool then complete",
                     "invoice / multi — lookup then echo then complete",
                     "duplicate / retry-same — same failing tool (fingerprint block)",
                     "wrap — use softMaxRounds=1 via query to force soft wrap"));
             body.put("endpoints", List.of(
+                    "GET /",
                     "POST /api/loop/run",
                     "POST /api/loop/run/worker",
                     "POST /api/loop/ag-ui",
@@ -151,51 +169,56 @@ public class SimpleLoopApplication {
         }
 
         @PostMapping("/api/loop/run")
-        Map<String, Object> run(
+        Mono<Map<String, Object>> run(
                 @RequestBody Map<String, String> body,
                 @RequestParam(name = "softMaxRounds", required = false) Integer softMaxRounds,
                 @RequestParam(name = "hardMaxRounds", required = false) Integer hardMaxRounds) {
-            runs.incrementAndGet();
-            var builder = LoopRequest.builder()
-                    .sessionId(body.getOrDefault("sessionId", "demo"))
-                    .userMessage(body.getOrDefault("message", "Demonstrate the loop engine"))
-                    .systemPrompt("You are a demo agent for Spring AI Loop Engine.");
-            if (softMaxRounds != null) {
-                builder.softMaxRounds(softMaxRounds);
-            }
-            if (hardMaxRounds != null) {
-                builder.hardMaxRounds(hardMaxRounds);
-            }
+            return Mono.fromCallable(() -> {
+                runs.incrementAndGet();
+                var builder = LoopRequest.builder()
+                        .sessionId(body.getOrDefault("sessionId", "demo"))
+                        .userMessage(body.getOrDefault("message", "Demonstrate the loop engine"))
+                        .systemPrompt("You are a demo agent for Spring AI Loop Engine.");
+                if (softMaxRounds != null) {
+                    builder.softMaxRounds(softMaxRounds);
+                }
+                if (hardMaxRounds != null) {
+                    builder.hardMaxRounds(hardMaxRounds);
+                }
 
-            LoopResult result = loopManager.run(builder.build());
-            Map<String, Object> response = new LinkedHashMap<>();
-            response.put("content", result.content());
-            response.put("terminationReason", result.terminationReason().name());
-            response.put("rounds", result.roundsExecuted());
-            response.put("tools", result.toolHistory().size());
-            response.put("toolNames", result.toolHistory().stream()
-                    .map(t -> t.toolName() + (t.success() ? ":ok" : ":fail"))
-                    .toList());
-            response.put("softWrapInjected", result.turn().isSoftWrapInjected());
-            response.put("turnId", result.turn().turnId());
-            return response;
+                LoopResult result = loopManager.run(builder.build());
+                Map<String, Object> response = new LinkedHashMap<>();
+                response.put("content", result.content());
+                response.put("terminationReason", result.terminationReason().name());
+                response.put("rounds", result.roundsExecuted());
+                response.put("tools", result.toolHistory().size());
+                response.put("toolNames", result.toolHistory().stream()
+                        .map(t -> t.toolName() + (t.success() ? ":ok" : ":fail"))
+                        .toList());
+                response.put("softWrapInjected", result.turn().isSoftWrapInjected());
+                response.put("turnId", result.turn().turnId());
+                return response;
+            }).subscribeOn(Schedulers.boundedElastic());
         }
 
         @PostMapping("/api/loop/run/worker")
-        Map<String, Object> spawnWorker(@RequestBody Map<String, String> body) {
-            runs.incrementAndGet();
-            LoopResult result = subAgentSpawner.spawn(
-                    body.getOrDefault("message", "invoice multi tool demo"),
-                    "You are a focused worker sub-agent.",
-                    Integer.parseInt(body.getOrDefault("softMaxRounds", "4")),
-                    Integer.parseInt(body.getOrDefault("hardMaxRounds", "6")));
-            return Map.of(
-                    "workerSession", result.turn().sessionId(),
-                    "content", result.content(),
-                    "terminationReason", result.terminationReason().name(),
-                    "rounds", result.roundsExecuted(),
-                    "tools", result.toolHistory().size(),
-                    "spawnCount", subAgentSpawner.spawnCount());
+        Mono<Map<String, Object>> spawnWorker(@RequestBody Map<String, String> body) {
+            return Mono.fromCallable(() -> {
+                runs.incrementAndGet();
+                LoopResult result = subAgentSpawner.spawn(
+                        body.getOrDefault("message", "invoice multi tool demo"),
+                        "You are a focused worker sub-agent.",
+                        Integer.parseInt(body.getOrDefault("softMaxRounds", "4")),
+                        Integer.parseInt(body.getOrDefault("hardMaxRounds", "6")));
+                Map<String, Object> response = new LinkedHashMap<>();
+                response.put("workerSession", result.turn().sessionId());
+                response.put("content", result.content());
+                response.put("terminationReason", result.terminationReason().name());
+                response.put("rounds", result.roundsExecuted());
+                response.put("tools", result.toolHistory().size());
+                response.put("spawnCount", subAgentSpawner.spawnCount());
+                return response;
+            }).subscribeOn(Schedulers.boundedElastic());
         }
     }
 }

@@ -34,6 +34,14 @@ OpenTelemetry GenAI spans track input/output tokens, finish reasons, and agent s
 
 Natively exposes your backend Java tools as an MCP server compatible with any MCP-capable IDE/client. The starter includes utilities to auto-generate `mcp.json` configurations and provide editor rule templates so AI-assisted coding can safely call your loop tools and governance gates.
 
+## Documentation
+
+| Guide | Description |
+|-------|-------------|
+| **[Developer Guide](docs/developer-guide.md)** | Install, full `spring.ai.loop.*` reference, APIs, modules, production checklist |
+| **[Tutorial](docs/tutorial.md)** | Hands-on labs from demo → ChatClient → tools → AG-UI → Bastion → integrity → OTel → A2A |
+| [docs/](docs/README.md) | Index (including offline demo preview) |
+
 ## Quick start
 
 ```xml
@@ -91,7 +99,7 @@ Client (MCP Bastion)  AG-UI · Integrity/PVDM · OTel
 | [spring-ai-starter-loop-engine](spring-ai-starter-loop-engine/README.md) | Zero-config Spring Boot starter (pulls all modules) |
 | [spring-ai-loop-engine-bom](spring-ai-loop-engine-bom/README.md) | Bill of Materials for version alignment |
 | [examples](examples/README.md) | Runnable sample applications |
-| [docs](docs/README.md) | Guides, proposal notes, setup docs |
+| [docs](docs/README.md) | [Developer guide](docs/developer-guide.md), [tutorial](docs/tutorial.md), proposal notes |
 | [scripts](scripts/README.md) | Install / helper scripts |
 | [.github](.github/README.md) | CI workflows |
 
@@ -129,10 +137,16 @@ Example `mcp.json` snippet:
 
 ## Example
 
+The interactive demo is **not running on GitHub**. You must build and start it locally (JDK 21+). If the server is down, the page still shows **simulation** outcomes so managers can click and learn.
+
 ```bash
-mvn -pl examples/simple-loop-app -am spring-boot:run
-curl -X POST http://localhost:8080/api/loop/run -H "Content-Type: application/json" -d "{\"message\":\"demo\"}"
+mvn -pl examples/simple-loop-app -am install -DskipTests
+mvn -pl examples/simple-loop-app spring-boot:run
 ```
+
+Then open [http://localhost:8080/](http://localhost:8080/).
+
+Without starting the app, you can still open the offline preview (simulation only): [docs/demo-preview.html](docs/demo-preview.html) (download/open in a browser).
 
 ## Stack
 

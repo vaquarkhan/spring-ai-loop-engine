@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Spring AI Loop Engine — Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #14231c;
+      --muted: #4a5c52;
+      --paper: #f3f0e8;
+      --panel: rgba(255, 252, 246, 0.9);
+      --line: rgba(20, 35, 28, 0.12);
+      --accent: #0f6b5c;
+      --accent-2: #c46b2c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: "Source Sans 3", sans-serif;
+      background:
+        radial-gradient(1200px 600px at 10% -10%, rgba(15, 107, 92, 0.18), transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, rgba(196, 107, 44, 0.16), transparent 50%),
+        linear-gradient(180deg, #ebe6da 0%, var(--paper) 40%, #e7efe9 100%);
+      min-height: 100vh;
+    }
+    .wrap { width: min(920px, calc(100% - 2rem)); margin: 0 auto; padding: 2.5rem 0 4rem; }
+    .brand {
+      font-family: Fraunces, serif;
+      font-size: clamp(2.2rem, 5vw, 3.4rem);
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      margin: 0 0 0.75rem;
+    }
+    .lede {
+      font-size: 1.2rem;
+      line-height: 1.55;
+      color: var(--muted);
+      max-width: 40rem;
+      margin: 0 0 1.25rem;
+    }
+    .notice {
+      background: rgba(196, 107, 44, 0.12);
+      border: 1px solid rgba(196, 107, 44, 0.35);
+      border-radius: 1rem;
+      padding: 1rem 1.15rem;
+      margin-bottom: 1.25rem;
+    }
+    .notice h2 {
+      font-family: Fraunces, serif;
+      font-size: 1.2rem;
+      margin: 0 0 0.5rem;
+      color: var(--accent-2);
+    }
+    .notice p, .notice li { color: var(--ink); margin: 0.35rem 0; line-height: 1.5; }
+    .notice ol { margin: 0.5rem 0 0.75rem; padding-left: 1.2rem; }
+    .notice code, pre.cmd {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.86rem;
+    }
+    pre.cmd {
+      background: #13241d;
+      color: #e7fff4;
+      padding: 0.85rem 1rem;
+      border-radius: 0.75rem;
+      overflow-x: auto;
+      margin: 0.65rem 0 0;
+    }
+    .mode {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+    .mode.live { background: rgba(15, 107, 92, 0.14); color: var(--accent); }
+    .mode.sim { background: rgba(196, 107, 44, 0.16); color: #8a4a14; }
+    .cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+      align-items: center;
+    }
+    label.toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-size: 0.95rem;
+      color: var(--muted);
+      cursor: pointer;
+      user-select: none;
+    }
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 0.85rem 1.25rem;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.55; cursor: wait; }
+    button.primary {
+      background: var(--accent);
+      color: #f7fffb;
+      box-shadow: 0 10px 24px rgba(15, 107, 92, 0.25);
+    }
+    button.secondary {
+      color: var(--ink);
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.55);
+    }
+    #result {
+      margin: 0 0 1rem;
+      padding: 1rem 1.1rem;
+      border-radius: 1rem;
+      background: #13241d;
+      color: #e7fff4;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.92rem;
+      white-space: pre-wrap;
+      min-height: 5rem;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    #result.error { background: #3a1510; color: #ffe8e2; }
+    .status { color: var(--muted); font-size: 0.95rem; margin: 0 0 1.5rem; }
+    section {
+      padding: 1.75rem 0;
+      border-top: 1px solid var(--line);
+    }
+    h2 {
+      font-family: Fraunces, serif;
+      font-size: 1.55rem;
+      margin: 0 0 0.65rem;
+    }
+    p { margin: 0 0 0.9rem; line-height: 1.6; color: var(--muted); }
+    .compare {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    @media (max-width: 720px) { .compare { grid-template-columns: 1fr; } }
+    .col {
+      padding: 1.1rem 1.15rem;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 1rem;
+    }
+    .col h3 {
+      margin: 0 0 0.5rem;
+      font-size: 1rem;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .col.before h3 { color: var(--accent-2); }
+    ul { margin: 0; padding-left: 1.15rem; color: var(--ink); }
+    li { margin: 0.35rem 0; line-height: 1.45; }
+    .try-grid { display: grid; gap: 0.75rem; margin-top: 1rem; }
+    .try {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.75rem;
+      align-items: center;
+      padding: 1rem 1.1rem;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 1rem;
+    }
+    .try strong { display: block; color: var(--ink); margin-bottom: 0.2rem; }
+    .try span { color: var(--muted); font-size: 0.95rem; }
+    .pill {
+      display: inline-block;
+      margin-top: 0.35rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      background: rgba(15, 107, 92, 0.12);
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h1 class="brand">Spring AI Loop Engine</h1>
+    <p class="lede">
+      Understand the shift from hand-written chat prompts to safe, goal-driven agent loops —
+      then click examples to see what happens.
+    </p>
+
+    <aside class="notice" id="start">
+      <h2>Important: this page is not always “live”</h2>
+      <p>
+        Viewing the GitHub repo alone does <strong>not</strong> start the demo.
+        For <strong>live</strong> results (real loop engine on your machine), a developer must build and start the app first:
+      </p>
+      <ol>
+        <li>Install <strong>JDK 21+</strong> and Maven</li>
+        <li>Open a terminal in the project root</li>
+        <li>Run the commands below</li>
+        <li>Open <strong>http://localhost:8080/</strong> in your browser</li>
+      </ol>
+      <pre class="cmd">mvn -pl examples/simple-loop-app -am install -DskipTests
+mvn -pl examples/simple-loop-app spring-boot:run</pre>
+      <p style="margin-top:0.75rem">
+        No AI API key is required for this demo. If the server is not running, clicks below still work in
+        <strong>simulation mode</strong> so managers can see sample outcomes.
+      </p>
+    </aside>
+
+    <div id="modeBadge" class="mode sim" role="status">Mode: checking…</div>
+
+    <div class="cta-row">
+      <button class="primary" type="button" data-action="run" data-message="invoice multi tool demo">Try invoice example</button>
+      <button class="secondary" type="button" data-action="scroll" data-target="what">What is this?</button>
+      <label class="toggle">
+        <input type="checkbox" id="forceSim" />
+        Always use simulation (no server)
+      </label>
+    </div>
+
+    <div id="result">Click a Run button. Live mode uses the real Loop Engine; otherwise you get a clear simulation.</div>
+    <p class="status" id="statusLine">Checking whether the local demo server is running…</p>
+
+    <section id="what">
+      <h2>What is this?</h2>
+      <p>
+        Think of an AI agent like a careful junior employee. You give it a <strong>business goal</strong>,
+        approved tools, and clear limits. The Loop Engine runs: try → use a tool → read the result →
+        self-correct → finish.
+      </p>
+    </section>
+
+    <section>
+      <h2>How prompting changes</h2>
+      <p>Prompting does not disappear — it moves up a level.</p>
+      <div class="compare">
+        <div class="col before">
+          <h3>Before — prompt engineer</h3>
+          <ul>
+            <li>Someone types step-by-step instructions every turn</li>
+            <li>When a tool fails, a person rewrites the next prompt</li>
+            <li>Hard to govern cost, retries, and approvals</li>
+          </ul>
+        </div>
+        <div class="col after">
+          <h3>After — loop architect</h3>
+          <ul>
+            <li>Leaders set the goal, tools, and guardrails once</li>
+            <li>The loop feeds tool results back automatically</li>
+            <li>Soft/hard step budgets stop runaway spend</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>What managers should notice</h2>
+      <ul>
+        <li><strong>Cost control</strong> — soft limit asks the agent to wrap up; hard limit stops the run.</li>
+        <li><strong>No infinite retries</strong> — the same failed action with the same inputs is blocked.</li>
+        <li><strong>Delegation</strong> — a main agent can spawn a temporary worker with its own budget.</li>
+        <li><strong>Visibility &amp; governance</strong> — progress can stream to a UI; access and audit can be enforced.</li>
+      </ul>
+    </section>
+
+    <section id="try">
+      <h2>Try examples</h2>
+      <p>
+        Buttons work even without the server (simulation). For real engine behavior, start the app using the
+        commands in the yellow box above, then uncheck “Always use simulation”.
+      </p>
+      <div class="try-grid">
+        <div class="try">
+          <div>
+            <strong>1. Simple task</strong>
+            <span>One tool call, then a finished answer.</span>
+          </div>
+          <button class="secondary" type="button" data-action="run" data-message="hello" data-sim="simple">Run</button>
+        </div>
+        <div class="try">
+          <div>
+            <strong>2. Multi-step business task</strong>
+            <span>Looks up invoice INV-42, then summarizes.</span>
+            <div class="pill">Best for demos</div>
+          </div>
+          <button class="primary" type="button" data-action="run" data-message="invoice multi tool demo" data-sim="invoice">Run</button>
+        </div>
+        <div class="try">
+          <div>
+            <strong>3. Stop repeating a mistake</strong>
+            <span>Same failed action is blocked, then wrap-up under budget pressure.</span>
+          </div>
+          <button class="secondary" type="button" data-action="run" data-message="duplicate retry-same failure" data-soft="3" data-hard="5" data-sim="duplicate">Run</button>
+        </div>
+        <div class="try">
+          <div>
+            <strong>4. Cost / time budget (soft wrap)</strong>
+            <span>Early “please finish now” when the step budget is tight.</span>
+          </div>
+          <button class="secondary" type="button" data-action="run" data-message="please wrap" data-soft="1" data-hard="3" data-sim="wrap">Run</button>
+        </div>
+        <div class="try">
+          <div>
+            <strong>5. Hand off to a worker agent</strong>
+            <span>Temporary sub-agent with its own limits.</span>
+          </div>
+          <button class="secondary" type="button" data-action="worker" data-message="invoice multi" data-sim="worker">Run</button>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Bottom line</h2>
+      <p>
+        Spring AI Loop Engine helps teams ship agents that are useful, bounded, and governable.
+        Simulation teaches the story; starting the local app proves the real engine.
+      </p>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      var resultEl = document.getElementById('result');
+      var statusLine = document.getElementById('statusLine');
+      var modeBadge = document.getElementById('modeBadge');
+      var forceSim = document.getElementById('forceSim');
+      var serverLive = false;
+      var busy = false;
+
+      var SIM = {
+        simple: {
+          content: 'Loop complete. Soft wrap=false, rounds so far=2',
+          terminationReason: 'MODEL_COMPLETION',
+          rounds: 2,
+          toolNames: ['echo:ok'],
+          softWrapInjected: false
+        },
+        invoice: {
+          content: 'Invoice INV-42 is OPEN for 1200. Loop finished after multi-tool work. rounds=3',
+          terminationReason: 'MODEL_COMPLETION',
+          rounds: 3,
+          toolNames: ['lookup:ok', 'echo:ok'],
+          softWrapInjected: false
+        },
+        duplicate: {
+          content: 'Soft wrap-up: summarizing progress after budget pressure. rounds=3',
+          terminationReason: 'SOFT_WRAP_UP',
+          rounds: 3,
+          toolNames: ['broken:fail', 'broken:fail'],
+          softWrapInjected: true
+        },
+        wrap: {
+          content: 'Soft wrap-up: summarizing progress after budget pressure. rounds=1',
+          terminationReason: 'SOFT_WRAP_UP',
+          rounds: 1,
+          toolNames: [],
+          softWrapInjected: true
+        },
+        worker: {
+          content: 'Invoice INV-42 is OPEN for 1200. Loop finished after multi-tool work. rounds=3',
+          workerSession: 'worker-sim-demo-001',
+          rounds: 3,
+          tools: 2,
+          spawnCount: 1,
+          terminationReason: 'MODEL_COMPLETION'
+        }
+      };
+
+      function setMode(live) {
+        serverLive = live;
+        modeBadge.className = 'mode ' + (live && !forceSim.checked ? 'live' : 'sim');
+        modeBadge.textContent = (live && !forceSim.checked)
+          ? 'Mode: LIVE (local Loop Engine)'
+          : 'Mode: SIMULATION (sample outcomes — start the app for live runs)';
+      }
+
+      function setBusy(on) {
+        busy = on;
+        document.querySelectorAll('button[data-action="run"], button[data-action="worker"]').forEach(function (b) {
+          b.disabled = on;
+        });
+      }
+
+      function showResult(text, isError) {
+        resultEl.classList.toggle('error', !!isError);
+        resultEl.textContent = text;
+        resultEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+
+      function explain(data, source) {
+        var tools = (data.toolNames && data.toolNames.length) ? data.toolNames.join(', ') : 'none';
+        return [
+          source === 'live' ? 'Outcome — LIVE engine' : 'Outcome — SIMULATION (illustrative)',
+          '----------------------------------------',
+          data.content || '(no content)',
+          '',
+          'Steps used: ' + data.rounds,
+          'Tools used: ' + tools,
+          'Why it stopped: ' + (data.terminationReason || ''),
+          'Budget wrap-up triggered: ' + (data.softWrapInjected ? 'Yes — wrap-up was requested.' : 'No'),
+          '',
+          source === 'sim'
+            ? 'Note: Start the demo server for real Loop Engine results (see yellow box above).'
+            : 'Note: This response came from the running Spring Boot demo.'
+        ].join('\n');
+      }
+
+      function explainWorker(data, source) {
+        return [
+          source === 'live' ? 'Worker handoff — LIVE engine' : 'Worker handoff — SIMULATION',
+          '----------------------------------------',
+          data.content || '(no content)',
+          '',
+          'Worker id: ' + data.workerSession,
+          'Steps used: ' + data.rounds,
+          'Tools used: ' + data.tools,
+          'Workers spawned so far: ' + data.spawnCount,
+          '',
+          source === 'sim'
+            ? 'Note: Start the demo server for real sub-agent spawning.'
+            : 'Note: A real temporary worker loop ran with its own budget.'
+        ].join('\n');
+      }
+
+      function delay(ms) {
+        return new Promise(function (resolve) { setTimeout(resolve, ms); });
+      }
+
+      async function probeServer() {
+        if (location.protocol === 'file:') {
+          setMode(false);
+          statusLine.textContent = 'Opened as a local file — using simulation. For live mode, build/start the app and open http://localhost:8080/';
+          forceSim.checked = true;
+          return;
+        }
+        try {
+          var res = await fetch('/api/demo/status', { headers: { 'Accept': 'application/json' } });
+          if (!res.ok) throw new Error('status ' + res.status);
+          var data = await res.json();
+          setMode(true);
+          statusLine.textContent = 'Local demo server is UP · runs: ' + data.runs +
+            ' · workers: ' + data.workersSpawned + ' · uncheck simulation to use live engine';
+        } catch (e) {
+          setMode(false);
+          statusLine.textContent = 'Local demo server is NOT running — clicks use simulation. Build & start (yellow box), then refresh.';
+        }
+      }
+
+      async function runScenario(message, softMaxRounds, hardMaxRounds, simKey) {
+        if (busy) return;
+        setBusy(true);
+        showResult('Working…', false);
+        var useSim = forceSim.checked || !serverLive;
+        try {
+          if (!useSim) {
+            var url = '/api/loop/run';
+            var qs = [];
+            if (softMaxRounds != null) qs.push('softMaxRounds=' + softMaxRounds);
+            if (hardMaxRounds != null) qs.push('hardMaxRounds=' + hardMaxRounds);
+            if (qs.length) url += '?' + qs.join('&');
+            var res = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+              body: JSON.stringify({ message: message, sessionId: 'manager-demo' })
+            });
+            var text = await res.text();
+            var data = JSON.parse(text);
+            if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + text.slice(0, 200));
+            showResult(explain(data, 'live'), false);
+            probeServer();
+          } else {
+            await delay(350);
+            showResult(explain(SIM[simKey] || SIM.simple, 'sim'), false);
+          }
+        } catch (e) {
+          await delay(200);
+          showResult(
+            explain(SIM[simKey] || SIM.simple, 'sim') +
+            '\n\n(Live call failed, so simulation was shown instead: ' + (e.message || e) + ')',
+            false
+          );
+          setMode(false);
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      async function runWorker(message, simKey) {
+        if (busy) return;
+        setBusy(true);
+        showResult('Working…', false);
+        var useSim = forceSim.checked || !serverLive;
+        try {
+          if (!useSim) {
+            var res = await fetch('/api/loop/run/worker', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+              body: JSON.stringify({ message: message, softMaxRounds: '4', hardMaxRounds: '6' })
+            });
+            var text = await res.text();
+            var data = JSON.parse(text);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            showResult(explainWorker(data, 'live'), false);
+            probeServer();
+          } else {
+            await delay(350);
+            showResult(explainWorker(SIM.worker, 'sim'), false);
+          }
+        } catch (e) {
+          await delay(200);
+          showResult(
+            explainWorker(SIM.worker, 'sim') +
+            '\n\n(Live call failed, so simulation was shown instead: ' + (e.message || e) + ')',
+            false
+          );
+          setMode(false);
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      forceSim.addEventListener('change', function () {
+        setMode(serverLive);
+      });
+
+      document.addEventListener('click', function (ev) {
+        var btn = ev.target.closest('button[data-action]');
+        if (!btn) return;
+        var action = btn.getAttribute('data-action');
+        if (action === 'scroll') {
+          var target = document.getElementById(btn.getAttribute('data-target'));
+          if (target) target.scrollIntoView({ behavior: 'smooth' });
+          return;
+        }
+        if (action === 'run') {
+          var soft = btn.getAttribute('data-soft');
+          var hard = btn.getAttribute('data-hard');
+          runScenario(
+            btn.getAttribute('data-message'),
+            soft ? Number(soft) : null,
+            hard ? Number(hard) : null,
+            btn.getAttribute('data-sim') || 'simple'
+          );
+          return;
+        }
+        if (action === 'worker') {
+          runWorker(btn.getAttribute('data-message'), btn.getAttribute('data-sim') || 'worker');
+        }
+      });
+
+      probeServer();
+    })();
+  </script>
+</body>
+</html>

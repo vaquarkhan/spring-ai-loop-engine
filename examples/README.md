@@ -26,3 +26,5 @@ curl -X POST http://localhost:8080/api/loop/run \
 ```
 
 More samples can be added here as the framework grows (HITL UI demos, A2A workers, Bastion RBAC demos).
+
+Developer docs: [Developer Guide](../docs/developer-guide.md) · [Tutorial](../docs/tutorial.md).

@@ -17,6 +17,8 @@ mvn -q verify
 
 Java 21+ required.
 
+Developer docs: [docs/developer-guide.md](docs/developer-guide.md) and hands-on [docs/tutorial.md](docs/tutorial.md).
+
 ## Pull requests
 
 - Keep PRs focused (one module / concern when possible)

@@ -58,4 +58,4 @@ LoopResult result = loops.run(LoopRequest.builder()
 
 Disable individual features with `spring.ai.loop.<feature>.enabled=false` as needed.
 
-See the [root README](../README.md) for architecture and the per-module READMEs for details.
+See the [Developer Guide](../docs/developer-guide.md) and [Tutorial](../docs/tutorial.md) for full instructions. Root [README](../README.md) covers architecture; per-module READMEs have package details.

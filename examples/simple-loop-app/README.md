@@ -2,15 +2,18 @@
 
 Showcase Spring Boot demo for Spring AI Loop Engine — **no LLM API key required**.
 
-Uses a scenario-aware demo `LoopModelClient` plus echo/lookup/broken tools to exercise:
+## Important for GitHub visitors
 
-- multi-tool loops
-- soft wrap-up budgets
-- duplicate failed-action fingerprint blocking
-- A2A sub-agent spawn
-- AG-UI SSE + AgentCard + HITL approval endpoint
+This demo does **not** run inside GitHub. Buttons on the page need either:
 
-## Run
+1. **Live mode** — build & start this app locally, then open http://localhost:8080/  
+2. **Simulation mode** — open [docs/demo-preview.html](../../docs/demo-preview.html) in a browser (sample outcomes, no server)
+
+The home page explains this in plain language for managers.
+
+Full developer path: [Developer Guide](../../docs/developer-guide.md) · [Tutorial](../../docs/tutorial.md) (Labs 0–2 cover this demo).
+
+## Run (live)
 
 ```bash
 # from repo root (JDK 21+)
@@ -18,7 +21,16 @@ mvn -pl examples/simple-loop-app -am install -DskipTests
 mvn -pl examples/simple-loop-app spring-boot:run
 ```
 
-Open http://localhost:8080/ for the scenario index.
+Open http://localhost:8080/
+
+## What the demo covers
+
+- multi-tool loops
+- soft wrap-up budgets
+- duplicate failed-action fingerprint blocking
+- A2A sub-agent spawn
+- AG-UI SSE + AgentCard + HITL approval endpoint
+- Manager-friendly landing page (live + automatic simulation fallback)
 
 ## Scenarios (`POST /api/loop/run`)
 
@@ -55,7 +67,7 @@ curl http://localhost:8080/.well-known/agent-card.json
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `GET` | `/` | Scenario index |
+| `GET` | `/` | Manager landing page (live + simulation fallback) |
 | `GET` | `/api/demo/status` | Run counters |
 | `POST` | `/api/loop/run` | Synchronous loop (optional soft/hard query params) |
 | `POST` | `/api/loop/run/worker` | Spawn budgeted sub-agent |
